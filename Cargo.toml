@@ -1,8 +1,43 @@
 [package]
 name = "zero2prod"
 version = "0.1.0"
+authors = ["Jose Duarte <iam@joseduarte.io>"]
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+path = "src/lib.rs"
+
+[[bin]]
+path = "src/main.rs"
+name = "zero2prod"
 
 [dependencies]
+actix-web = "4"
+config = "0.13.3"
+serde = { version = "1.0.152", features = ["derive"] }
+
+[dev-dependencies]
+actix-rt = "2"
+reqwest = "0.11"
+tokio = "1"
+
+[dependencies.sqlx]
+version = "0.5.7"
+default-features = false
+features = [
+    # tells sqlsx to use the actix runtime for its futures and rustls as TLS backend
+    "runtime-actix-rustls",
+    # gives us access to sqlx::query! and sqlx::query_as!
+    "macros",
+    # unlocks postgres-specific fucntionality
+    "postgres",
+    # uuid adds support for mapping SQL UUIDs to the Uuid type from the uuid crate. We need it to work with our
+    # id column;
+    "uuid",
+    # adds support for mapping SQL timestapmtz to the DateTime<T> type from the chrono crate.
+    # used here to work with our subscribed_at column;
+    "chrono",
+    # gives us acces to the same functions used under the hood by sqlx-cli to manage migrations.
+    # it will turn out to be usedul for our test suite.
+    "migrate",
+]

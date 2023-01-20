@@ -15,6 +15,8 @@ name = "zero2prod"
 actix-web = "4"
 config = "0.13.3"
 serde = { version = "1.0.152", features = ["derive"] }
+uuid = {version = "0.8.1", features = ["v4"]}
+chrono = "0.4.15"
 
 [dev-dependencies]
 actix-rt = "2"

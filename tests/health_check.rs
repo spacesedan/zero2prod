@@ -1,11 +1,24 @@
+use once_cell::sync::Lazy;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
     startup::run,
+    telemetry::{get_subscriber, init_subscriber},
 };
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let default_filter_level = "info".into();
+    let subscriber_name = "test".into();
+    if std::env::var("TEST_LOG").is_ok() {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::stdout);
+        init_subscriber(subscriber);
+    } else {
+        let subscriber = get_subscriber(subscriber_name, default_filter_level, std::io::sink);
+        init_subscriber(subscriber);
+    }
+});
 // Test application defintion that will be used to run our mailing list against.
 // it consists of an addres which is the port the test app is runnign in,
 // and a `PgPool` in order to be able to manage multiple queries happening concurrently while the
@@ -31,6 +44,7 @@ pub struct TestApp {
 // - we move our application to a different thread have it run its test and once complete it will
 // close out app.
 async fn spawn_app() -> TestApp {
+    Lazy::force(&TRACING);
     let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind to random port");
     // get the port address of the newly created listener
     let port = listener.local_addr().unwrap().port();
@@ -108,13 +122,6 @@ async fn health_check_works() {
 async fn subscribe_returns_a_200_for_valid_data() {
     // Arrange
     let test_app = spawn_app().await;
-    let configuration = get_configuration().expect("Failed to read configuration");
-    let connection_string = configuration.database.connetion_string();
-    // The `Connection` trait MUST be in scope for us to invoke
-    // `PgConnection::connect` - it is not an inherent method of the struct!
-    let mut connection = PgConnection::connect(&connection_string)
-        .await
-        .expect("Failed to connect to Postgres");
     let client = reqwest::Client::new();
     let body = "name=spacedaddy&email=space_daddy%40test.com";
 
@@ -131,7 +138,7 @@ async fn subscribe_returns_a_200_for_valid_data() {
     assert_eq!(200, response.status().as_u16());
 
     let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
-        .fetch_one(&mut connection)
+        .fetch_one(&test_app.db_pool)
         .await
         .expect("Failed to fetch saved subscription");
 

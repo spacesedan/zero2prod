@@ -67,7 +67,7 @@ async fn spawn_app() -> TestApp {
 
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
     // Connect to Postgres without using a default db name
-    let mut connection = PgConnection::connect(&config.connection_string_without_db())
+    let mut connection = PgConnection::connect_with(&config.without_db())
         .await
         .expect("Failed to connect to Postgres.");
 
@@ -86,7 +86,7 @@ pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
         .expect("Failed to create database");
 
     // Create a connection pool using the newly created db.
-    let connection_pool = PgPool::connect(&config.connetion_string())
+    let connection_pool = PgPool::connect_with(config.without_db())
         .await
         .expect("Failed to connect to Postgres");
 

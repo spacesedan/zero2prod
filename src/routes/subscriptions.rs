@@ -1,11 +1,10 @@
 use actix_web::{post, web, HttpResponse};
 use chrono::Utc;
-use serde::Deserialize;
 use sqlx::PgPool;
 use uuid::Uuid;
 
 // to use Deserialize like this you have to enable the derive feature on serde.
-#[derive(Deserialize)]
+#[derive(serde::Deserialize)]
 pub struct FormData {
     email: String,
     name: String,

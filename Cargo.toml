@@ -52,4 +52,5 @@ features = [
     # gives us acces to the same functions used under the hood by sqlx-cli to manage migrations.
     # it will turn out to be usedul for our test suite.
     "migrate",
+    "offline"
 ]

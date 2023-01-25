@@ -26,5 +26,6 @@ async fn main() -> std::io::Result<()> {
         configuration.application_port
     );
     // start our app using the `TcpListener` and `PgPool`.
-    run(listener, connection_pool)?.await
+    run(listener, connection_pool)?.await?;
+    Ok(())
 }

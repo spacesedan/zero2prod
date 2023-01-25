@@ -14,8 +14,7 @@ async fn main() -> std::io::Result<()> {
     // get the configuration needed from file.
     let configuration = get_configuration().expect("Failed to read configuration.");
     // get a connection to Postgres.
-    let connection_pool = PgPool::connect(&configuration.database.connetion_string())
-        .await
+    let connection_pool = PgPool::connect_lazy(&configuration.database.connetion_string())
         .expect("Failed to connect to Postgres");
     // format our address in order to give it to our TCP listener.
     // could do this inside of the `bind()` but chose to do define it on its own for readability

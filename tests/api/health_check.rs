@@ -7,6 +7,8 @@ async fn health_check_works() {
     // use reqwest crate to perform HTTP requests against our application
     let client = reqwest::Client::new();
 
+    dbg!(&test_app.address);
+
     let response = client
         //  use the address returned from the newly created test app.
         .get(format!("{}/health_check", &test_app.address))

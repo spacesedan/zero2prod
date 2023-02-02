@@ -3,7 +3,10 @@ use chrono::Utc;
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    email_client::EmailClient,
+};
 
 // to use Deserialize like this you have to enable the derive feature on serde.
 #[derive(serde::Deserialize)]
@@ -27,7 +30,7 @@ impl TryFrom<FormData> for NewSubscriber {
 // Telemetry data lets us get better insight as too what is going on in our application.
 #[tracing::instrument(
     name= "Adding a new subscriber",
-    skip(form, pool),
+    skip(form, pool, email_client),
     fields(
         subscriber_email = %form.email,
         subscriber_name = %form.name
@@ -39,6 +42,7 @@ pub async fn subscribe(
     // Retrieving a connection from the application state! this is the way `actix_web` handles
     // dependency injection
     pool: web::Data<PgPool>,
+    email_client: web::Data<EmailClient>,
 ) -> HttpResponse {
     // create a `new_subscriber` from teh incoming form
     let new_subscriber = match form.0.try_into() {
@@ -48,17 +52,43 @@ pub async fn subscribe(
         // if the information on the form is invalid return a `400 BAD REQUEST`
         Err(_) => return HttpResponse::BadRequest().finish(),
     };
-    // Try to insert the `new_subscriber` into our db.
-    match insert_subscriber(&pool, &new_subscriber).await {
-        // if the `new_subscriber` does not already exist, we store them oin our db.
-        Ok(_) => HttpResponse::Ok().finish(),
-        // if anything does wrong when trying to store a subscriber return a `500 INTERNAL SERVER
-        // ERROR`
-        Err(e) => {
-            tracing::error!("Failed to execute query: {:?}", e);
-            HttpResponse::InternalServerError().finish()
-        }
+
+    if insert_subscriber(&pool, &new_subscriber).await.is_err() {
+        return HttpResponse::InternalServerError().finish();
     }
+
+    if send_confirmation_email(&email_client, new_subscriber)
+        .await
+        .is_err()
+    {
+        return HttpResponse::InternalServerError().finish();
+    }
+
+    HttpResponse::Ok().finish()
+}
+
+#[tracing::instrument(
+    name = "Send a confirmation email to a new subscriber",
+    skip(email_client, new_subscriber)
+)]
+pub async fn send_confirmation_email(
+    email_client: &EmailClient,
+    new_subscriber: NewSubscriber,
+) -> Result<(), reqwest::Error> {
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+
+    let plain_body = format!(
+        "Welcome to our newsletter!\nVisit {} to confirm your subscription",
+        confirmation_link
+    );
+    let html_body = format!(
+        "Welcome to out newsletter!<br />\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+        confirmation_link
+    );
+    email_client
+        .send_email(new_subscriber.email, "Welcome!", &html_body, &plain_body)
+        .await
 }
 
 #[tracing::instrument(
@@ -71,10 +101,9 @@ pub async fn insert_subscriber(
 ) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"
-                 INSERT INTO subscriptions (id, email, name, subscribed_at)
-                 VALUES ($1, $2, $3, $4)
-
-                 "#,
+            INSERT INTO subscriptions (id, email, name, subscribed_at, status)
+            VALUES ($1, $2, $3, $4, 'pending_confirmation')
+        "#,
         Uuid::new_v4(),
         new_subscriber.email.as_ref(),
         new_subscriber.name.as_ref(),

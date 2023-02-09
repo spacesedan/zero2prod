@@ -3,7 +3,7 @@ use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
 use tracing_subscriber::{fmt::MakeWriter, layer::SubscriberExt, EnvFilter, Registry};
 
-/// Compose multiple laters into a `tracing`'s subscriber.
+/// Compose multiple layers into a `tracing`'s subscriber.
 ///
 /// # Implementation Notes
 ///

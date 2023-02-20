@@ -1,4 +1,3 @@
-use tokio::task::JoinHandle;
 use tracing::{subscriber::set_global_default, Subscriber};
 use tracing_bunyan_formatter::{BunyanFormattingLayer, JsonStorageLayer};
 use tracing_log::LogTracer;
@@ -29,15 +28,6 @@ where
         .with(env_filter)
         .with(JsonStorageLayer)
         .with(formatting_layer)
-}
-
-pub fn spawn_blocking_with_tracing<F, R>(f: F) -> JoinHandle<R>
-where
-    F: FnOnce() -> R + Send + 'static,
-    R: Send + 'static,
-{
-    let current_span = tracing::Span::current();
-    tokio::task::spawn_blocking(move || current_span.in_scope(f))
 }
 
 /// Register a sunscriber as a global degault to process span data.

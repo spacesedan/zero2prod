@@ -41,7 +41,7 @@ async fn create_confirmed_subscriber(app: &TestApp) {
         .unwrap();
 }
 
-#[actix_rt::test]
+#[tokio::test]
 async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
     // Arrange
     let app = spawn_app().await;
@@ -61,13 +61,13 @@ async fn newsletters_are_not_delivered_to_unconfirmed_subscribers() {
             "html": "<p>Newsletter body as HTML</p>"
         }
     });
-    let response = app.post_newsletters(newletter_request_body).await;
+    let response = app.post_publish_newsletters(newletter_request_body).await;
 
     // Assert
     assert_eq!(response.status().as_u16(), reqwest::StatusCode::OK);
 }
 
-#[actix_rt::test]
+#[tokio::test]
 pub async fn newsletters_are_delivered_to_confirmed_subscribers() {
     // Arrange
     let app = spawn_app().await;
@@ -88,7 +88,7 @@ pub async fn newsletters_are_delivered_to_confirmed_subscribers() {
             "html": "<p>Newsletter body as HTML</p>"
         }
     });
-    let response = app.post_newsletters(newletter_request_body).await;
+    let response = app.post_publish_newsletters(newletter_request_body).await;
 
     // Assert
     assert_eq!(response.status().as_u16(), reqwest::StatusCode::OK)
@@ -123,7 +123,7 @@ async fn newsletters_returns_400_for_invalid_data() {
 
     // Act
     for (invalid_body, error_message) in test_cases {
-        let response = app.post_newsletters(invalid_body).await;
+        let response = app.post_publish_newsletters(invalid_body).await;
         // Assert
         assert_eq!(
             reqwest::StatusCode::BAD_REQUEST,

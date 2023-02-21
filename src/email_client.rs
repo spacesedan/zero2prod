@@ -37,7 +37,7 @@ impl EmailClient {
             to: recipient.as_ref(),
             subject,
             html_body: html_content,
-            text_body: text_content,
+ :           text_body: text_content,
         };
         self.http_client
             .post(&url)
@@ -62,7 +62,7 @@ struct SendEmailRequest<'a> {
 
 #[cfg(test)]
 mod test {
-    use claim::{assert_err, assert_ok};
+    use claims::{assert_err, assert_ok};
     use fake::{
         faker::{
             internet::en::SafeEmail,
